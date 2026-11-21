@@ -1,0 +1,5 @@
+---
+interface Props { title: string; description: string; slug: string; count: number }
+const { title, description, slug, count } = Astro.props;
+---
+<a class="category-card" href={`/categories/${slug}/`}><span class="category-count">{count} {count === 1 ? 'story' : 'stories'}</span><h2>{title}</h2><p>{description}</p><span class="category-arrow" aria-hidden="true">↗</span></a>

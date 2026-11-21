@@ -1,0 +1,79 @@
+name: AI Pulse news pipeline
+
+on:
+  schedule:
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ai-pulse-news-pipeline
+  cancel-in-progress: false
+
+jobs:
+  discover-research-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out default branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Discover, research, validate and write articles
+        id: pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          MAX_CANDIDATES_PER_RUN: '20'
+        run: npm run automation
+
+      - name: Save source status report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-status-${{ github.run_id }}
+          path: automation/source-status.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Commit generated article files
+        id: commit
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -z "$(git status --porcelain -- src/content/articles)" ]; then
+            echo "No article files changed."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git add src/content/articles
+          git commit -m "chore(news): add verified pipeline articles"
+          git push
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      - name: Report commit failure
+        if: failure() && steps.pipeline.outcome == 'success'
+        run: echo '## Publication commit failed' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Add commit result to summary
+        if: always()
+        env:
+          COMMIT_OUTCOME: ${{ steps.commit.outcome }}
+        run: |
+          echo "## Git publication" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit step: ${COMMIT_OUTCOME:-not run}" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,35 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import SearchBar from '@/components/SearchBar.astro';
+const query = Astro.url.searchParams.get('q') ?? '';
+---
+<MainLayout title="Search" description="Search AI Pulse articles."><div class="wrap"><header class="page-title"><span class="eyebrow">Explore the archive</span><h1>Search AI Pulse</h1><p>Find reporting across companies, research, products, policy, robotics, and science.</p></header><SearchBar /><p id="search-status" class="search-status" aria-live="polite">{query ? 'Searching published stories…' : 'Enter a topic, company, or question to search.'}</p><div id="results" class="search-results" aria-live="polite"></div></div><script is:inline type="module">
+  const input = document.querySelector('#q');
+  const status = document.querySelector('#search-status');
+  const results = document.querySelector('#results');
+  const params = new URLSearchParams(window.location.search);
+  if (input) input.value = params.get('q') || '';
+  if (input && status && results) {
+    const query = input.value.trim();
+    if (query) {
+      try {
+        const pagefind = await import('/pagefind/pagefind.js');
+        await pagefind.init();
+        const found = await pagefind.search(query);
+        if (!found.results.length) status.textContent = `No stories found for “${query}”. Try a different search.`;
+        else {
+          status.textContent = `${found.results.length} ${found.results.length === 1 ? 'result' : 'results'} for “${query}”`;
+          const items = await Promise.all(found.results.slice(0, 20).map((result) => result.data()));
+          for (const item of items) {
+            const card = document.createElement('article'); card.className = 'search-result';
+            const heading = document.createElement('h2'); const link = document.createElement('a'); link.href = item.url; link.textContent = item.meta.title || 'Untitled story'; heading.append(link);
+            const excerpt = document.createElement('p'); excerpt.textContent = new DOMParser().parseFromString(item.excerpt, 'text/html').body.textContent || '';
+            card.append(heading, excerpt); results.append(card);
+          }
+        }
+      } catch {
+        status.textContent = 'Search is temporarily unavailable. Please try again later.';
+      }
+    }
+  }
+</script></MainLayout>

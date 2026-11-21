@@ -1,0 +1,10 @@
+---
+import { getCollection } from 'astro:content';
+import MainLayout from '@/layouts/MainLayout.astro';
+import CategoryCard from '@/components/CategoryCard.astro';
+import { categorySlug, publicArticles } from '@/lib/articles';
+import { ARTICLE_CATEGORIES, CATEGORY_DESCRIPTIONS } from '@/lib/article-schema';
+const articles = publicArticles(await getCollection('articles'));
+const categories = ARTICLE_CATEGORIES.map((title) => ({ title, slug: categorySlug(title), description: CATEGORY_DESCRIPTIONS[title], count: articles.filter(({ data }) => data.category === title).length })).filter(({ count }) => count > 0);
+---
+<MainLayout title="Categories" description="Browse AI Pulse reporting by topic."><div class="wrap"><header class="page-title"><span class="eyebrow">Browse by topic</span><h1>Categories</h1><p>Explore AI developments across the companies, research, tools, and ideas shaping the field.</p></header>{categories.length ? <div class="category-grid">{categories.map((category) => <CategoryCard {...category} />)}</div> : <div class="empty-state"><strong>Topics will appear as we publish.</strong>Our coverage will grow across research, companies, products, policy, and more.</div>}</div></MainLayout>

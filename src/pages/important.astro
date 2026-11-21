@@ -1,0 +1,9 @@
+---
+import { getCollection } from 'astro:content';
+import MainLayout from '@/layouts/MainLayout.astro';
+import NewsCard from '@/components/NewsCard.astro';
+import { publicArticles } from '@/lib/articles';
+import { sortMostImportant } from '@/lib/article-rules';
+const articles = sortMostImportant(publicArticles(await getCollection('articles')).map((article) => ({ ...article.data, article }))).map(({ article }) => article);
+---
+<MainLayout title="Important AI stories" description="The AI developments with the greatest significance, selected by AI Pulse editors."><div class="wrap"><header class="page-title"><span class="eyebrow">Worth your attention</span><h1>Most important</h1><p>Developments selected for their potential impact on people, industry, and society.</p></header>{articles.length ? <div class="news-grid">{articles.map((article) => <NewsCard article={article} />)}</div> : <div class="empty-state"><strong>No top stories yet.</strong>Significant developments will be highlighted here.</div>}</div></MainLayout>

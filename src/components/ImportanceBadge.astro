@@ -1,0 +1,6 @@
+---
+import type { ImportanceLevel } from '@/lib/article-schema';
+interface Props { importanceLevel: ImportanceLevel; importanceScore: number }
+const { importanceLevel, importanceScore } = Astro.props;
+---
+<span class:list={['importance-badge', importanceLevel.toLowerCase()]} title={`Importance score ${importanceScore} of 5`}>{importanceLevel}</span>

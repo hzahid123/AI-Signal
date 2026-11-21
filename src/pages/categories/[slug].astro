@@ -1,0 +1,13 @@
+---
+import { getCollection } from 'astro:content';
+import MainLayout from '@/layouts/MainLayout.astro';
+import NewsCard from '@/components/NewsCard.astro';
+import { categorySlug, publicArticles } from '@/lib/articles';
+import { ARTICLE_CATEGORIES } from '@/lib/article-schema';
+export async function getStaticPaths() {
+  return ARTICLE_CATEGORIES.map((name) => ({ params: { slug: categorySlug(name) }, props: { name } }));
+}
+const { name } = Astro.props;
+const articles = publicArticles(await getCollection('articles')).filter(({ data }) => data.category === name);
+---
+<MainLayout title={name} description={`AI Pulse reporting and analysis on ${name.toLowerCase()}.`}><div class="wrap"><header class="page-title"><span class="eyebrow">Topic</span><h1>{name}</h1><p>Reporting, context, and analysis from across the AI landscape.</p></header>{articles.length ? <div class="news-grid">{articles.map((article) => <NewsCard article={article} />)}</div> : <div class="empty-state"><strong>No stories in this topic yet.</strong>Published coverage will appear here as our reporting grows. <a href="/categories/">Browse other topics</a></div>}</div></MainLayout>

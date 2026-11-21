@@ -1,0 +1,10 @@
+---
+import { getCollection } from 'astro:content';
+import MainLayout from '@/layouts/MainLayout.astro';
+import NewsCard from '@/components/NewsCard.astro';
+import { publicArticles } from '@/lib/articles';
+import { archiveBucket } from '@/lib/article-rules';
+const articles = publicArticles(await getCollection('articles')).filter(({ data }) => archiveBucket(data.publishedAt) === 'LATEST');
+---
+<MainLayout title="Latest AI news" description="AI Pulse stories published in the past seven days."><div class="wrap"><header class="page-title"><span class="eyebrow">The latest</span><h1>Latest stories</h1><p>Our most recent reporting from the past seven days. Older work remains in the archive.</p></header>{articles.length ? <section data-latest-window-section><div class="news-grid">{articles.map((article) => <NewsCard article={article} latestWindow />)}</div><div class="empty-state" data-latest-empty hidden><strong>No stories from the past seven days.</strong>Browse the <a href="/archive/">full archive</a> for earlier reporting.</div></section> : <div class="empty-state"><strong>No stories from the past seven days.</strong>Browse the <a href="/archive/">full archive</a> for earlier reporting.</div>}</div></MainLayout>
+<script src="../scripts/update-latest-window.ts"></script>

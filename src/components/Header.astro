@@ -1,0 +1,13 @@
+---
+import { ARTICLE_CATEGORIES } from '@/lib/article-schema';
+import { categorySlug } from '@/lib/articles';
+---
+<header class="site-header">
+  <a class="brand" href="/" aria-label="AI Pulse home"><span class="brand-mark">◉</span> AI <span>Pulse</span></a>
+  <nav aria-label="Main navigation">
+    <a href="/">Home</a><a href="/latest/">Latest</a><a href="/important/">Important</a>
+    <details class="nav-menu"><summary><a href="/categories/">Categories</a></summary><div class="nav-dropdown"><a href="/categories/">All categories</a>{ARTICLE_CATEGORIES.map((category) => <a href={`/categories/${categorySlug(category)}/`}>{category}</a>)}</div></details>
+    <a href="/archive/">Archive</a><a href="/about/">About</a>
+  </nav>
+  <a class="search-link" href="/search/" aria-label="Search AI Pulse"><span aria-hidden="true">⌕</span><span class="search-word">Search</span></a>
+</header>

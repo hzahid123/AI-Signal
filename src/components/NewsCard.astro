@@ -1,0 +1,15 @@
+---
+import type { Article } from '@/lib/articles';
+import { categorySlug, formatDate } from '@/lib/articles';
+import FreshnessBadge from '@/components/FreshnessBadge.astro';
+import ImportanceBadge from '@/components/ImportanceBadge.astro';
+interface Props { article: Article; featured?: boolean; latestWindow?: boolean }
+const { article, featured = false, latestWindow = false } = Astro.props;
+---
+<article class:list={['news-card', { 'featured-card': featured }]} data-latest-window={latestWindow ? '' : undefined} data-published-at={latestWindow ? article.data.publishedAt.toISOString() : undefined}>
+  {article.data.featuredImage && <a class="card-image" href={`/news/${article.data.slug}/`} tabindex="-1" aria-hidden="true"><img src={article.data.featuredImage} alt="" loading="lazy" /></a>}
+  <div class="card-meta"><a href={`/categories/${categorySlug(article.data.category)}/`}>{article.data.category}</a><time datetime={article.data.publishedAt.toISOString()}>{formatDate(article.data.publishedAt)}</time></div>
+  <h3><a href={`/news/${article.data.slug}/`}>{article.data.title}</a></h3>
+  <p>{article.data.introduction}</p>
+  <div class="card-bottom"><span>By {article.data.author ?? 'AI Pulse'}</span><span class="badges"><FreshnessBadge eventAt={article.data.eventAt} /><ImportanceBadge importanceLevel={article.data.importanceLevel} importanceScore={article.data.importanceScore} /></span></div>
+</article>

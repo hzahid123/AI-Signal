@@ -1,0 +1,13 @@
+---
+import { freshnessLabel } from '@/lib/article-rules';
+interface Props { eventAt: Date }
+const { eventAt } = Astro.props;
+---
+<time class="freshness" datetime={eventAt.toISOString()} data-freshness data-event-at={eventAt.toISOString()}>{freshnessLabel(eventAt)}</time>
+<script>
+  import { freshnessLabel } from '@/lib/article-rules';
+  document.querySelectorAll<HTMLElement>('[data-freshness][data-event-at]').forEach((badge) => {
+    const eventAt = new Date(badge.dataset.eventAt ?? '');
+    if (!Number.isNaN(eventAt.valueOf())) badge.textContent = freshnessLabel(eventAt);
+  });
+</script>

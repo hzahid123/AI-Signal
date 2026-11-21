@@ -1,0 +1,36 @@
+---
+import { getCollection, render } from 'astro:content';
+import MainLayout from '@/layouts/MainLayout.astro';
+import NewsCard from '@/components/NewsCard.astro';
+import FreshnessBadge from '@/components/FreshnessBadge.astro';
+import ImportanceBadge from '@/components/ImportanceBadge.astro';
+import { categorySlug, formatDate, publicArticles, readingTime } from '@/lib/articles';
+export async function getStaticPaths() {
+  return publicArticles(await getCollection('articles')).map((article) => ({ params: { slug: article.data.slug }, props: { article } }));
+}
+const { article } = Astro.props;
+const { Content, headings } = await render(article);
+const related = publicArticles(await getCollection('articles')).filter((item) => item.id !== article.id && item.data.category === article.data.category).slice(0, 3);
+const showToc = article.body.trim().split(/\s+/).length > 900 && headings.length > 2;
+---
+<MainLayout title={article.data.seoTitle ?? article.data.title} description={article.data.metaDescription ?? article.data.introduction}>
+  <div class="wrap article-wrap">
+    <header class="article-header"><a class="back-link" href="/latest/">← Latest stories</a><div class="article-kicker"><a href={`/categories/${categorySlug(article.data.category)}/`}>{article.data.category}</a><FreshnessBadge eventAt={article.data.eventAt} /><ImportanceBadge importanceLevel={article.data.importanceLevel} importanceScore={article.data.importanceScore} /></div><h1>{article.data.title}</h1><p class="article-dek">{article.data.introduction}</p><div class="article-byline"><span>By <strong>{article.data.author ?? 'AI Pulse'}</strong></span><span>Published <time datetime={article.data.publishedAt.toISOString()}>{formatDate(article.data.publishedAt)}</time></span>{article.data.updatedAt && <span>Updated <time datetime={article.data.updatedAt.toISOString()}>{formatDate(article.data.updatedAt)}</time></span>}<span>{readingTime(article.body)} min read</span></div>{article.data.featuredImage && <img class="article-hero-image" src={article.data.featuredImage} alt="" fetchpriority="high" />}</header>
+    <div class="article-grid">{showToc && <aside class="table-of-contents"><strong>In this story</strong><nav aria-label="Table of contents">{headings.filter((heading) => heading.depth <= 3).map((heading) => <a href={`#${heading.slug}`}>{heading.text}</a>)}</nav></aside>}<article class="article-body"><Content /><section class="original-sources"><h2>Original sources</h2><ul>{article.data.sources.map((source) => <li><a href={source.url} target="_blank" rel="noopener noreferrer">{source.name} <span aria-hidden="true">↗</span></a></li>)}</ul></section><div class="article-actions"><span>Share this story</span><button type="button" data-copy-link>Copy link</button><button type="button" data-native-share>Share</button><span class="share-feedback" aria-live="polite"></span></div><p class="publication-credit">Published by AI Pulse · Reporting grounded in linked primary sources.</p></article></div>
+    {related.length > 0 && <section class="related-section"><div class="section-head"><div><span class="eyebrow">Keep exploring</span><h2>Related stories</h2></div></div><div class="news-grid">{related.map((item) => <NewsCard article={item} />)}</div></section>}
+  </div>
+</MainLayout>
+<script>
+  const copy = document.querySelector<HTMLButtonElement>('[data-copy-link]');
+  const share = document.querySelector<HTMLButtonElement>('[data-native-share]');
+  const feedback = document.querySelector<HTMLElement>('.share-feedback');
+  copy?.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(window.location.href); if (feedback) feedback.textContent = 'Link copied'; }
+    catch { if (feedback) feedback.textContent = 'Copy is unavailable in this browser. Copy the address from your browser bar.'; }
+  });
+  share?.addEventListener('click', async () => {
+    if (!navigator.share) { if (feedback) feedback.textContent = 'Sharing is unavailable in this browser. Use Copy link instead.'; return; }
+    try { await navigator.share({ title: document.title, url: window.location.href }); }
+    catch (error) { if (error instanceof Error && error.name !== 'AbortError' && feedback) feedback.textContent = 'Could not open the share menu.'; }
+  });
+</script>

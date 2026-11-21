@@ -1,0 +1,47 @@
+[
+  {
+    "name": "OpenAI News",
+    "feedUrl": "https://openai.com/news/rss.xml",
+    "category": "AI Companies",
+    "enabled": true,
+    "reliability": "primary",
+    "lastSuccessfulFetch": null,
+    "errorInformation": null
+  },
+  {
+    "name": "Google DeepMind Blog",
+    "feedUrl": "https://deepmind.google/blog/rss.xml",
+    "category": "AI Models & Research",
+    "enabled": true,
+    "reliability": "primary",
+    "lastSuccessfulFetch": null,
+    "errorInformation": null
+  },
+  {
+    "name": "Hugging Face Blog",
+    "feedUrl": "https://huggingface.co/blog/feed.xml",
+    "category": "AI Models & Research",
+    "enabled": true,
+    "reliability": "primary",
+    "lastSuccessfulFetch": null,
+    "errorInformation": null
+  },
+  {
+    "name": "arXiv cs.AI",
+    "feedUrl": "https://rss.arxiv.org/rss/cs.AI",
+    "category": "AI Models & Research",
+    "enabled": true,
+    "reliability": "primary",
+    "lastSuccessfulFetch": null,
+    "errorInformation": null
+  },
+  {
+    "name": "arXiv cs.LG",
+    "feedUrl": "https://rss.arxiv.org/rss/cs.LG",
+    "category": "AI Models & Research",
+    "enabled": true,
+    "reliability": "primary",
+    "lastSuccessfulFetch": null,
+    "errorInformation": null
+  }
+]

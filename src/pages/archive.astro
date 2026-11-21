@@ -1,0 +1,9 @@
+---
+import { getCollection } from 'astro:content';
+import MainLayout from '@/layouts/MainLayout.astro';
+import NewsCard from '@/components/NewsCard.astro';
+import { publicArticles } from '@/lib/articles';
+const articles = publicArticles(await getCollection('articles'));
+const years = [...new Set(articles.map(({ data }) => data.publishedAt.getUTCFullYear()))];
+---
+<MainLayout title="Archive" description="Browse the AI Pulse archive by year."><div class="wrap"><header class="page-title"><span class="eyebrow">All coverage</span><h1>Archive</h1><p>Browse published AI Pulse stories by year. Older reporting remains available in this searchable archive.</p></header>{years.length ? years.map((year) => <section class="archive-year"><div class="section-head"><h2>{year}</h2></div><div class="news-grid">{articles.filter(({ data }) => data.publishedAt.getUTCFullYear() === year).map((article) => <NewsCard article={article} />)}</div></section>) : <div class="empty-state"><strong>The archive is empty for now.</strong>Published stories will be collected here by year.</div>}</div></MainLayout>

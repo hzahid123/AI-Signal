@@ -1,0 +1,36 @@
+---
+import { getCollection } from 'astro:content';
+import MainLayout from '@/layouts/MainLayout.astro';
+import NewsCard from '@/components/NewsCard.astro';
+import { categorySlug, publicArticles } from '@/lib/articles';
+import { archiveBucket, sortBreaking, sortFeatured, sortMostImportant } from '@/lib/article-rules';
+import { ARTICLE_CATEGORIES, CATEGORY_DESCRIPTIONS } from '@/lib/article-schema';
+const allArticles = publicArticles(await getCollection('articles'));
+const featured = sortFeatured(allArticles.map((article) => ({ ...article.data, article })))[0]?.article;
+const breaking = sortBreaking(allArticles.map((article) => ({ ...article.data, article }))).slice(0, 3).map(({ article }) => article);
+const latest = allArticles.filter(({ data }) => archiveBucket(data.publishedAt) === 'LATEST').slice(0, 6);
+const important = sortMostImportant(allArticles.map((article) => ({ ...article.data, article }))).slice(0, 3).map(({ article }) => article);
+const categorySections = ARTICLE_CATEGORIES.map((title) => ({ title, description: CATEGORY_DESCRIPTIONS[title], slug: categorySlug(title), articles: allArticles.filter((article) => article.data.category === title).slice(0, 3) })).filter((section) => section.articles.length);
+---
+<MainLayout title="AI news, clearly explained" description="Independent reporting and context on artificial intelligence, research, products, business, and policy.">
+  <div class="wrap home-wrap">
+    <section class="hero"><div><span class="eyebrow">Independent AI journalism</span><h1>Make sense of<br />what’s next.</h1><p>Clear reporting on artificial intelligence, the people building it, and the decisions shaping what comes next.</p><a class="text-link" href="/latest/">Explore the latest <span aria-hidden="true">→</span></a></div><div class="hero-aside"><span class="pulse-symbol" aria-hidden="true">◉</span><p>Signal over noise.<br />Context over hype.</p><small>Reporting for a world changing with AI.</small></div></section>
+    {breaking.length > 0 && <section id="breaking-news" class="breaking-strip" aria-label="Breaking news"><span class="breaking-label"><i></i> Breaking</span>{breaking.map((article) => <a data-breaking-event={article.data.eventAt.toISOString()} href={`/news/${article.data.slug}/`}>{article.data.title}</a>)}</section>}
+    {featured && <section class="home-section"><div class="section-head"><div><span class="eyebrow">Editor’s selection</span><h2>Featured story</h2></div></div><div class="featured-grid"><NewsCard article={featured} featured /><div class="featured-context"><span>THE BIG PICTURE</span><p>Careful reporting. Original sources. A clearer view of what matters.</p><a href="/editorial-policy/">How we report <span aria-hidden="true">→</span></a></div></div></section>}
+    {latest.length > 0 && <section class="home-section" data-latest-window-section><div class="section-head"><div><span class="eyebrow">Recently published</span><h2>Latest news</h2></div><a href="/latest/">All latest <span aria-hidden="true">→</span></a></div><div class="news-grid">{latest.map((article) => <NewsCard article={article} latestWindow />)}</div><div class="empty-state" data-latest-empty hidden><strong>No stories from the past seven days.</strong>Browse the <a href="/archive/">full archive</a> for earlier reporting.</div></section>}
+    {important.length > 0 && <section class="home-section"><div class="section-head"><div><span class="eyebrow">The developments to know</span><h2>Most important</h2></div><a href="/important/">All important stories <span aria-hidden="true">→</span></a></div><div class="news-grid">{important.map((article) => <NewsCard article={article} />)}</div></section>}
+    {categorySections.map((section) => <section class="home-section"><div class="section-head"><div><span class="eyebrow">Explore a topic</span><h2>{section.title}</h2></div><a href={`/categories/${section.slug}/`}>More in {section.title} <span aria-hidden="true">→</span></a></div><div class="news-grid">{section.articles.map((article) => <NewsCard article={article} />)}</div></section>)}
+    <section class="newsletter"><div><span class="eyebrow">The AI Pulse briefing</span><h2>Stay curious. Stay informed.</h2><p>A thoughtful AI briefing is in the works. Newsletter subscriptions will open here once the service is ready.</p></div><span class="newsletter-status">Coming soon</span></section>
+    {allArticles.length === 0 && <div class="empty-state home-empty"><strong>Our newsroom is getting started.</strong>AI Pulse will publish sourced reporting here. In the meantime, explore <a href="/about/">our mission</a> and <a href="/editorial-policy/">editorial standards</a>.</div>}
+  </div>
+</MainLayout>
+<script>
+  import { freshnessLabel } from '@/lib/article-rules';
+  const strip = document.querySelector<HTMLElement>('#breaking-news');
+  strip?.querySelectorAll<HTMLElement>('[data-breaking-event]').forEach((link) => {
+    const eventAt = new Date(link.dataset.breakingEvent ?? '');
+    if (Number.isNaN(eventAt.valueOf()) || freshnessLabel(eventAt) !== 'BREAKING') link.remove();
+  });
+  if (strip && !strip.querySelector('[data-breaking-event]')) strip.remove();
+</script>
+<script src="../scripts/update-latest-window.ts"></script>

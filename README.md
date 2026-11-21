@@ -1,5 +1,6 @@
 # AI Pulse
 
+
 AI Pulse is a static Astro publication foundation for sourced AI and technology reporting. Articles live as Markdown in Git and are validated by an Astro Content Collection. The public site has no database or runtime API.
 
 ## Requirements
@@ -121,3 +122,29 @@ src/
 automation/        Feed registry and scheduled research pipeline
 worker/            Reserved for private admin API
 ```
+
+## Private owner dashboard
+
+The static dashboard is at `/admin/`. Its API is a separate Cloudflare Worker routed to the same origin under `/admin-api/`; Cloudflare Access protects the dashboard and API together. The browser never receives GitHub or Gemini credentials. Article and settings changes are saved as GitHub commits; approving an article triggers the normal Pages deployment when Pages is connected to the repository.
+
+### Cloudflare setup
+
+1. Add `aipulse.news` to Cloudflare DNS/Pages and deploy the Pages project from this repository (`npm run build`, output `dist`). The domain must be active in the same Cloudflare account as the Worker.
+2. In **Zero Trust → Access → Applications**, create a self-hosted application for `aipulse.news/admin*` and allow only the owner's email. This protects the static dashboard and `/admin-api/*` Worker route. Copy this application's **Application Audience (AUD) Tag**.
+3. Set `GITHUB_REPOSITORY` in `worker/wrangler.toml` to the actual `owner/repository` value. Keep `DEFAULT_BRANCH` and `SITE_ORIGIN` correct.
+4. From this repository, deploy the Worker: `npm run deploy:admin`. The Worker route is configured as `aipulse.news/admin-api/*` in `worker/wrangler.toml`.
+5. Add Worker secrets from the repository root (replace the prompts with the actual values when Wrangler asks):
+
+   ```sh
+   npx wrangler secret put ACCESS_AUD --config worker/wrangler.toml
+   npx wrangler secret put ADMIN_EMAIL --config worker/wrangler.toml
+   npx wrangler secret put GITHUB_TOKEN --config worker/wrangler.toml
+   ```
+
+   `GITHUB_TOKEN` should be a fine-grained token limited to this repository, with **Contents: Read and write**, **Actions: Read and write**, and **Commit statuses: Read-only** permissions. The Worker uses it to edit article/settings/source files, inspect Actions runs and deployment status, and dispatch the workflow. Do not put it in `.env`, source code, or the browser.
+6. Keep `GEMINI_API_KEY` only in the GitHub repository's **Settings → Secrets and variables → Actions → New repository secret**. The automation workflow reads settings from `automation/settings.json`; no key is stored there.
+7. Visit `https://aipulse.news/admin/`, complete Cloudflare Access sign-in, and verify the dashboard shows repository and recent Action data. If API requests show an audience error, check that `ACCESS_AUD` is the audience tag from the dashboard Access application.
+
+The Access policies are essential: the Worker also checks the Access identity and exact configured audience before handling any API request. The source URL validator accepts public HTTPS feeds only, checks redirect targets, and limits the response size. Essential duplicate detection, source checks, and review rules cannot be disabled from AI Settings. Settings and the source registry are versioned in GitHub, so edits create auditable commits and can be reverted there.
+
+Cloudflare Access free-tier user limits, Workers request limits, Pages build limits, and GitHub Actions minutes depend on the current account plan. Check the account's Cloudflare and GitHub usage pages before increasing automation frequency; the two-hour schedule uses 12 workflow runs daily. No SQL database is used.

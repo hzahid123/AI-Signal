@@ -9,7 +9,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "test": "node --test tests/*.test.mjs",
-    "automation": "node --experimental-strip-types automation/run.ts"
+    "automation": "node --experimental-strip-types automation/run.ts",
+    "deploy:admin": "wrangler deploy --config worker/wrangler.toml"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.4",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@types/node": "^22.15.30",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.45.0"
   }
 }

@@ -35,10 +35,9 @@ jobs:
         id: pipeline
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || '' }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          MAX_CANDIDATES_PER_RUN: '20'
         run: npm run automation
 
       - name: Save source status report

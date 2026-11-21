@@ -1,0 +1,15 @@
+name = "ai-pulse-admin-api"
+main = "index.ts"
+compatibility_date = "2026-11-21"
+workers_dev = false
+routes = [{ pattern = "aipulse.news/admin-api/*", zone_name = "aipulse.news" }]
+
+[vars]
+GITHUB_REPOSITORY = "hzahid123/AI-Signal"
+DEFAULT_BRANCH = "main"
+SITE_ORIGIN = "https://aipulse.news"
+
+# ACCESS_AUD, ADMIN_EMAIL, and GITHUB_TOKEN must be added as Worker secrets:
+# npx wrangler secret put ACCESS_AUD --config worker/wrangler.toml
+# npx wrangler secret put ADMIN_EMAIL --config worker/wrangler.toml
+# npx wrangler secret put GITHUB_TOKEN --config worker/wrangler.toml

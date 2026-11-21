@@ -15,6 +15,7 @@ import {
   type ImportanceFactors,
 } from '../src/lib/article-schema.ts';
 import { findDuplicate, normalizeSourceUrl, normalizeTitle } from '../src/lib/article-rules.ts';
+import { AutomationSettingsSchema, DEFAULT_AUTOMATION_SETTINGS, type AutomationSettings } from './settings.ts';
 
 const ReliabilitySchema = z.enum(['primary', 'peer-reviewed', 'reputable-secondary', 'other']);
 const RegistryEntrySchema = z.object({
@@ -62,7 +63,7 @@ const errors: string[] = [];
 const counters = { feedsChecked: 0, storiesDiscovered: 0, candidatesDeferred: 0, candidateProcessingErrors: 0, duplicatesRejected: 0, articlesGenerated: 0, articlesApproved: 0, articlesRejected: 0, articlesPublished: 0, heldForReview: 0 };
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_', removeNSPrefix: true, textNodeName: '#text', processEntities: true, trimValues: true });
 const stateBranch = 'ai-pulse-automation-state';
-type PersistedSourceStatus = { generatedAt?: string; sources?: Array<Record<string, any>> };
+type PersistedSourceStatus = { generatedAt?: string; summary?: Record<string, unknown>; sources?: Array<Record<string, any>> };
 
 class GeminiQuotaExceededError extends Error {
   constructor(message: string) { super(message); this.name = 'GeminiQuotaExceededError'; }
@@ -288,11 +289,11 @@ function formatMarkdownBody(draft: Draft, citations: Citation[]): string {
   }).join('\n\n');
 }
 
-function validateBody(content: string, discoveryText: string): string[] {
+function validateBody(content: string, discoveryText: string, thresholds: AutomationSettings['qualityThresholds']): string[] {
   const issues: string[] = [];
   const words = content.replace(/\[[^\]]+\]\([^)]+\)/g, '').split(/\s+/).filter(Boolean);
-  if (words.length < 250) issues.push(`Article body is too short (${words.length} words; minimum 250)`);
-  if (words.length > 1500) issues.push(`Article body is too long (${words.length} words; maximum 1500)`);
+  if (words.length < thresholds.minimumWords) issues.push(`Article body is too short (${words.length} words; minimum ${thresholds.minimumWords})`);
+  if (words.length > thresholds.maximumWords) issues.push(`Article body is too long (${words.length} words; maximum ${thresholds.maximumWords})`);
   const paragraphs = content.split(/\n\s*\n/).map((part) => part.replace(/^#+\s*/, '').trim().toLowerCase()).filter((part) => part.length >= 80);
   if (new Set(paragraphs).size !== paragraphs.length) issues.push('Repeated paragraph detected');
   if (/as an ai language model|in today's rapidly evolving|in a rapidly evolving landscape|the world of ai is changing rapidly/i.test(content)) issues.push('Generic or suspicious boilerplate detected');
@@ -342,7 +343,7 @@ async function validUrl(urlText: string): Promise<boolean> {
   } catch { return false; }
 }
 
-async function processCandidate(candidate: Candidate, existing: ArticleRecord[], apiKey: string, model: string): Promise<'published' | 'pending' | 'rejected' | 'duplicate'> {
+async function processCandidate(candidate: Candidate, existing: ArticleRecord[], apiKey: string, model: string, settings: AutomationSettings): Promise<'published' | 'pending' | 'rejected' | 'duplicate'> {
   const seed: ArticleRecord = {
     id: slugify(candidate.title), slug: slugify(candidate.title), title: candidate.title.slice(0, 140),
     introduction: (candidate.description || candidate.title).padEnd(40, ' ').slice(0, 300), category: candidate.category,
@@ -378,10 +379,10 @@ async function processCandidate(candidate: Candidate, existing: ArticleRecord[],
   const importanceFactors: ImportanceFactors = { ...draft.importanceFactors, sourceReliability };
   const importanceScore = scoreImportance(importanceFactors);
   const content = formatMarkdownBody(draft, citations);
-  const bodyIssues = validateBody(content, candidate.description);
+  const bodyIssues = validateBody(content, candidate.description, settings.qualityThresholds);
   const allUrlsValid = await Promise.all(sources.map((source) => validUrl(source.url)));
   const linkIssues = allUrlsValid.some((isValid) => !isValid);
-  const articleStatus = !bodyIssues.length && !linkIssues && sources.length >= 2 && sources.some(({ reliability }) => reliability === 'primary' || reliability === 'peer-reviewed') && !draft.uncertaintyNotes.length && !draft.contradictingReports && !draft.sensitive && importanceScore <= 3 ? 'PUBLISHED' : 'PENDING';
+  const articleStatus = settings.automaticPublishingEnabled && importanceScore >= settings.minimumImportanceScore && !bodyIssues.length && !linkIssues && sources.length >= settings.researchRequirements.minimumSources && sources.some(({ reliability }) => reliability === 'primary' || reliability === 'peer-reviewed') && !draft.uncertaintyNotes.length && !draft.contradictingReports && !draft.sensitive && importanceScore < settings.manualReview.highImpactScore ? 'PUBLISHED' : 'PENDING';
   const titleSlug = slugify(draft.title);
   const articleFrontmatter = {
     slug: titleSlug,
@@ -440,8 +441,15 @@ function markdownSummary(feedStatuses: Array<Record<string, unknown>>): string {
 async function main(): Promise<void> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is required. Configure it as a GitHub Actions secret before running the pipeline.');
-  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-  const registry = z.array(RegistryEntrySchema).parse(JSON.parse(await readFile(sourceFiles, 'utf8')));
+  let settings: AutomationSettings;
+  try { settings = AutomationSettingsSchema.parse(JSON.parse(await readFile('automation/settings.json', 'utf8'))); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') settings = DEFAULT_AUTOMATION_SETTINGS;
+    else throw new Error(`Automation settings are invalid: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const model = settings.model || process.env.GEMINI_MODEL || DEFAULT_AUTOMATION_SETTINGS.model;
+  const registry = z.array(RegistryEntrySchema).parse(JSON.parse(await readFile(sourceFiles, 'utf8')))
+    .filter((source) => settings.enabledCategories.includes(source.category));
   let previousStatus: PersistedSourceStatus = {};
   try { previousStatus = await loadPersistedStatus(); }
   catch (error) { errors.push(error instanceof Error ? error.message : String(error)); }
@@ -461,12 +469,12 @@ async function main(): Promise<void> {
     seenUrls.add(url.href); return true;
   });
   counters.storiesDiscovered = candidates.length;
-  const maxCandidates = Math.max(1, Math.min(50, Number(process.env.MAX_CANDIDATES_PER_RUN || 20)));
+  const maxCandidates = settings.maximumCandidatesPerRun;
   candidates = candidates.slice(0, maxCandidates);
   const existing = await readExistingArticles();
   for (let index = 0; index < candidates.length; index += 1) {
     const candidate = candidates[index]!;
-    try { await processCandidate(candidate, existing, apiKey, model); }
+    try { await processCandidate(candidate, existing, apiKey, model, settings); }
     catch (error) {
       counters.candidateProcessingErrors += 1;
       errors.push(error instanceof Error ? error.message : String(error));
@@ -476,8 +484,9 @@ async function main(): Promise<void> {
       }
     }
   }
-  await writeFile(stateFile, `${JSON.stringify({ generatedAt: now.toISOString(), sources: feedStatuses }, null, 2)}\n`, 'utf8');
-  try { await persistStatusBranch({ generatedAt: now.toISOString(), sources: feedStatuses }); }
+  const runSummary = { ...counters, errors: [...errors], startedAt: now.toISOString(), completedAt: new Date().toISOString(), status: errors.length ? 'completed_with_errors' : 'success' };
+  await writeFile(stateFile, `${JSON.stringify({ generatedAt: now.toISOString(), summary: runSummary, sources: feedStatuses }, null, 2)}\n`, 'utf8');
+  try { await persistStatusBranch({ generatedAt: now.toISOString(), summary: runSummary, sources: feedStatuses }); }
   catch (error) { errors.push(error instanceof Error ? error.message : String(error)); }
   const summary = markdownSummary(feedStatuses);
   process.stdout.write(summary);

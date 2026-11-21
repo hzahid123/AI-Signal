@@ -59,10 +59,14 @@ const articleDir = path.resolve('src/content/articles');
 const stateFile = path.resolve('automation/source-status.json');
 const now = new Date();
 const errors: string[] = [];
-const counters = { feedsChecked: 0, storiesDiscovered: 0, duplicatesRejected: 0, articlesGenerated: 0, articlesApproved: 0, articlesRejected: 0, articlesPublished: 0, heldForReview: 0 };
+const counters = { feedsChecked: 0, storiesDiscovered: 0, candidatesDeferred: 0, candidateProcessingErrors: 0, duplicatesRejected: 0, articlesGenerated: 0, articlesApproved: 0, articlesRejected: 0, articlesPublished: 0, heldForReview: 0 };
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_', removeNSPrefix: true, textNodeName: '#text', processEntities: true, trimValues: true });
 const stateBranch = 'ai-pulse-automation-state';
 type PersistedSourceStatus = { generatedAt?: string; sources?: Array<Record<string, any>> };
+
+class GeminiQuotaExceededError extends Error {
+  constructor(message: string) { super(message); this.name = 'GeminiQuotaExceededError'; }
+}
 
 async function githubApi(pathname: string, method = 'GET', body?: unknown): Promise<Response> {
   const token = process.env.GITHUB_TOKEN;
@@ -93,13 +97,9 @@ async function persistStatusBranch(status: PersistedSourceStatus): Promise<void>
   let priorResponse = await githubApi(`${encodedPath}?ref=${stateBranch}`);
   let priorSha: string | undefined;
   if (priorResponse.status === 404) {
-    const repoResponse = await githubApi('');
-    if (!repoResponse.ok) throw new Error(`Could not read repository metadata (GitHub HTTP ${repoResponse.status})`);
-    const repository = await repoResponse.json() as { default_branch: string };
-    const refResponse = await githubApi(`git/ref/heads/${encodeURIComponent(repository.default_branch)}`);
-    if (!refResponse.ok) throw new Error(`Could not read default branch ref (GitHub HTTP ${refResponse.status})`);
-    const ref = await refResponse.json() as { object: { sha: string } };
-    const createResponse = await githubApi('git/refs', 'POST', { ref: `refs/heads/${stateBranch}`, sha: ref.object.sha });
+    const baseSha = process.env.GITHUB_SHA;
+    if (!baseSha) throw new Error('GITHUB_SHA is missing; cannot initialize the feed-status branch');
+    const createResponse = await githubApi('git/refs', 'POST', { ref: `refs/heads/${stateBranch}`, sha: baseSha });
     if (!createResponse.ok && createResponse.status !== 422) throw new Error(`Could not create status branch (GitHub HTTP ${createResponse.status})`);
     priorResponse = await githubApi(`${encodedPath}?ref=${stateBranch}`);
   }
@@ -193,12 +193,16 @@ async function requestJson(url: string, body: unknown, apiKey: string): Promise<
       const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body), signal: AbortSignal.timeout(90_000) });
       if (!response.ok) {
         const detail = (await response.text()).slice(0, 900);
+        if (response.status === 429 && /exceeded your current quota|resource_exhausted|quota.{0,30}(exceed|exhaust)/i.test(detail)) {
+          throw new GeminiQuotaExceededError(`Gemini quota exhausted: ${detail}`);
+        }
         if (response.status < 500 && response.status !== 429) throw new Error(`Gemini HTTP ${response.status}: ${detail}`);
         throw new Error(`Gemini HTTP ${response.status}: ${detail}`);
       }
       return await response.json() as Record<string, any>;
     } catch (error) {
       lastError = error;
+      if (error instanceof GeminiQuotaExceededError) throw error;
       if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
     }
   }
@@ -349,7 +353,11 @@ async function processCandidate(candidate: Candidate, existing: ArticleRecord[],
   if (findDuplicate(seed, existing)) { counters.duplicatesRejected += 1; return 'duplicate'; }
   let research: Research;
   try { research = await researchStory(candidate, apiKey, model); }
-  catch (error) { throw new Error(`Research failed for “${candidate.title}”: ${error instanceof Error ? error.message : String(error)}`); }
+  catch (error) {
+    const message = `Research failed for “${candidate.title}”: ${error instanceof Error ? error.message : String(error)}`;
+    if (error instanceof GeminiQuotaExceededError) throw new GeminiQuotaExceededError(message);
+    throw new Error(message);
+  }
   if (!research.text || !research.citations.length) { counters.articlesRejected += 1; return 'rejected'; }
   const citationsByUrl = new Map<string, Citation>();
   const discoveryCitation: Citation = { title: candidate.feedName, url: candidate.url, reliability: candidate.reliability };
@@ -415,6 +423,8 @@ function markdownSummary(feedStatuses: Array<Record<string, unknown>>): string {
     '# AI Pulse automation summary', '',
     `- Feeds checked: ${counters.feedsChecked}`,
     `- Stories discovered: ${counters.storiesDiscovered}`,
+    `- Candidates deferred after quota/rate limit: ${counters.candidatesDeferred}`,
+    `- Candidate processing errors: ${counters.candidateProcessingErrors}`,
     `- Duplicate stories rejected: ${counters.duplicatesRejected}`,
     `- Articles generated: ${counters.articlesGenerated}`,
     `- Articles approved for automatic publication: ${counters.articlesApproved}`,
@@ -454,9 +464,17 @@ async function main(): Promise<void> {
   const maxCandidates = Math.max(1, Math.min(50, Number(process.env.MAX_CANDIDATES_PER_RUN || 20)));
   candidates = candidates.slice(0, maxCandidates);
   const existing = await readExistingArticles();
-  for (const candidate of candidates) {
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index]!;
     try { await processCandidate(candidate, existing, apiKey, model); }
-    catch (error) { counters.articlesRejected += 1; errors.push(error instanceof Error ? error.message : String(error)); }
+    catch (error) {
+      counters.candidateProcessingErrors += 1;
+      errors.push(error instanceof Error ? error.message : String(error));
+      if (error instanceof GeminiQuotaExceededError) {
+        counters.candidatesDeferred += candidates.length - index - 1;
+        break;
+      }
+    }
   }
   await writeFile(stateFile, `${JSON.stringify({ generatedAt: now.toISOString(), sources: feedStatuses }, null, 2)}\n`, 'utf8');
   try { await persistStatusBranch({ generatedAt: now.toISOString(), sources: feedStatuses }); }

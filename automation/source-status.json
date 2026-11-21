@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-11-21T07:04:50.200Z",
+  "sources": [
+    {
+      "name": "OpenAI News",
+      "feedUrl": "https://openai.com/news/rss.xml",
+      "enabled": true,
+      "lastSuccessfulFetch": "2026-11-21T07:04:50.607Z",
+      "errorInformation": null,
+      "storiesFound": 1421
+    },
+    {
+      "name": "Google DeepMind Blog",
+      "feedUrl": "https://deepmind.google/blog/rss.xml",
+      "enabled": true,
+      "lastSuccessfulFetch": "2026-11-21T07:04:50.734Z",
+      "errorInformation": null,
+      "storiesFound": 100
+    },
+    {
+      "name": "Hugging Face Blog",
+      "feedUrl": "https://huggingface.co/blog/feed.xml",
+      "enabled": true,
+      "lastSuccessfulFetch": "2026-11-21T07:04:50.665Z",
+      "errorInformation": null,
+      "storiesFound": 915
+    },
+    {
+      "name": "arXiv cs.AI",
+      "feedUrl": "https://rss.arxiv.org/rss/cs.AI",
+      "enabled": true,
+      "lastSuccessfulFetch": "2026-11-21T07:04:50.686Z",
+      "errorInformation": null,
+      "storiesFound": 0
+    },
+    {
+      "name": "arXiv cs.LG",
+      "feedUrl": "https://rss.arxiv.org/rss/cs.LG",
+      "enabled": true,
+      "lastSuccessfulFetch": "2026-11-21T07:04:50.855Z",
+      "errorInformation": null,
+      "storiesFound": 359
+    }
+  ]
+}

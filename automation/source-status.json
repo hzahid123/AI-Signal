@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-22T02:12:29.252Z",
+  "generatedAt": "2026-11-22T09:43:25.674Z",
   "summary": {
     "feedsChecked": 5,
-    "storiesDiscovered": 173,
-    "candidatesDeferred": 19,
+    "storiesDiscovered": 4,
+    "candidatesDeferred": 3,
     "candidateProcessingErrors": 1,
     "duplicatesRejected": 0,
     "articlesGenerated": 0,
@@ -12,10 +12,10 @@
     "articlesPublished": 0,
     "heldForReview": 0,
     "errors": [
-      "Research failed for “Density Feedback Control for Transferability of Generative Sparse Adversarial Attacks”: Gemini quota exhausted: {\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \",\"code\":\"too_many_requests\"}}"
+      "Research failed for “Combatting adversarial distillation”: Gemini quota exhausted: {\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \",\"code\":\"too_many_requests\"}}"
     ],
-    "startedAt": "2026-11-22T02:12:29.252Z",
-    "completedAt": "2026-11-22T02:12:30.008Z",
+    "startedAt": "2026-11-22T09:43:25.674Z",
+    "completedAt": "2026-11-22T09:43:26.460Z",
     "status": "completed_with_errors"
   },
   "sources": [
@@ -23,7 +23,7 @@
       "name": "OpenAI News",
       "feedUrl": "https://openai.com/news/rss.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T02:12:29.668Z",
+      "lastSuccessfulFetch": "2026-11-22T09:43:26.219Z",
       "errorInformation": null,
       "storiesFound": 1421
     },
@@ -31,7 +31,7 @@
       "name": "Google DeepMind Blog",
       "feedUrl": "https://deepmind.google/blog/rss.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T02:12:29.850Z",
+      "lastSuccessfulFetch": "2026-11-22T09:43:26.124Z",
       "errorInformation": null,
       "storiesFound": 100
     },
@@ -39,7 +39,7 @@
       "name": "Hugging Face Blog",
       "feedUrl": "https://huggingface.co/blog/feed.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T02:12:29.726Z",
+      "lastSuccessfulFetch": "2026-11-22T09:43:26.273Z",
       "errorInformation": null,
       "storiesFound": 915
     },
@@ -47,7 +47,7 @@
       "name": "arXiv cs.AI",
       "feedUrl": "https://rss.arxiv.org/rss/cs.AI",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T02:12:29.731Z",
+      "lastSuccessfulFetch": "2026-11-22T09:43:26.130Z",
       "errorInformation": null,
       "storiesFound": 0
     },
@@ -55,9 +55,9 @@
       "name": "arXiv cs.LG",
       "feedUrl": "https://rss.arxiv.org/rss/cs.LG",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T02:12:29.820Z",
+      "lastSuccessfulFetch": "2026-11-22T09:43:26.129Z",
       "errorInformation": null,
-      "storiesFound": 359
+      "storiesFound": 0
     }
   ]
 }

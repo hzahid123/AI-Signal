@@ -1,8 +1,7 @@
-name = "ai-pulse-admin-api"
+name = "ai-signal"
 main = "index.ts"
 compatibility_date = "2026-11-21"
-workers_dev = false
-routes = [{ pattern = "aipulse.news/admin-api/*", zone_name = "aipulse.news" }]
+workers_dev = true
 
 [vars]
 GITHUB_REPOSITORY = "hzahid123/AI-Signal"

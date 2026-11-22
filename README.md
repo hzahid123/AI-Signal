@@ -125,15 +125,16 @@ worker/            Reserved for private admin API
 
 ## Private owner dashboard
 
-The static dashboard is at `/admin/`. Its API is a separate Cloudflare Worker routed to the same origin under `/admin-api/`; Cloudflare Access protects the dashboard and API together. The browser never receives GitHub or Gemini credentials. Article and settings changes are saved as GitHub commits; approving an article triggers the normal Pages deployment when Pages is connected to the repository.
+The owner dashboard can be served privately from the Worker at its `workers.dev` URL. `npm run build:admin` generates the static site and embeds the dashboard page into the Worker; the Worker serves `/admin/` and its same-origin `/admin-api/` endpoints. This avoids needing to own a custom domain. The public publication continues to deploy separately to Cloudflare Pages. The browser never receives GitHub or Gemini credentials.
 
 ### Cloudflare setup
 
-1. Add `aipulse.news` to Cloudflare DNS/Pages and deploy the Pages project from this repository (`npm run build`, output `dist`). The domain must be active in the same Cloudflare account as the Worker.
-2. In **Zero Trust → Access → Applications**, create a self-hosted application for `aipulse.news/admin*` and allow only the owner's email. This protects the static dashboard and `/admin-api/*` Worker route. Copy this application's **Application Audience (AUD) Tag**.
-3. Set `GITHUB_REPOSITORY` in `worker/wrangler.toml` to the actual `owner/repository` value. Keep `DEFAULT_BRANCH` and `SITE_ORIGIN` correct.
-4. From this repository, deploy the Worker: `npm run deploy:admin`. The Worker route is configured as `aipulse.news/admin-api/*` in `worker/wrangler.toml`.
-5. Add Worker secrets from the repository root (replace the prompts with the actual values when Wrangler asks):
+1. In Cloudflare, open **Workers & Pages** and enable your account's `workers.dev` subdomain if it is not enabled. Cloudflare creates a Worker URL like `https://ai-signal.<your-account-subdomain>.workers.dev`.
+2. In the AI Signal Worker project's build settings, leave **Build command** blank (the deploy script builds the admin bundle itself), set **Deploy command** to `npm run deploy:admin`, and set **Preview command** to `npm run preview:admin` if the form requires one. Keep preview deployments disabled unless you separately configure local preview secrets.
+3. Enable **Protect with Cloudflare Access** for **All traffic**, and set its policy to allow only the owner's exact email. Copy the Access application's **Application Audience (AUD) Tag**. The Worker directly checks the authenticated Access identity and audience on API requests.
+4. Set `GITHUB_REPOSITORY` in `worker/wrangler.toml` to the actual `owner/repository` value. Keep `DEFAULT_BRANCH` and `SITE_ORIGIN` correct. The Worker uses `workers_dev = true` and does not require a custom domain or zone route.
+5. From this repository, deploy the Worker with `npm run deploy:admin` after the changes are pushed.
+6. Add Worker secrets from the Cloudflare Worker settings or with Wrangler from the repository root (replace the prompts with the actual values when Wrangler asks):
 
    ```sh
    npx wrangler secret put ACCESS_AUD --config worker/wrangler.toml
@@ -142,9 +143,9 @@ The static dashboard is at `/admin/`. Its API is a separate Cloudflare Worker ro
    ```
 
    `GITHUB_TOKEN` should be a fine-grained token limited to this repository, with **Contents: Read and write**, **Actions: Read and write**, and **Commit statuses: Read-only** permissions. The Worker uses it to edit article/settings/source files, inspect Actions runs and deployment status, and dispatch the workflow. Do not put it in `.env`, source code, or the browser.
-6. Keep `GEMINI_API_KEY` only in the GitHub repository's **Settings → Secrets and variables → Actions → New repository secret**. The automation workflow reads settings from `automation/settings.json`; no key is stored there.
-7. Visit `https://aipulse.news/admin/`, complete Cloudflare Access sign-in, and verify the dashboard shows repository and recent Action data. If API requests show an audience error, check that `ACCESS_AUD` is the audience tag from the dashboard Access application.
+7. Keep `GEMINI_API_KEY` only in the GitHub repository's **Settings → Secrets and variables → Actions → New repository secret**. The automation workflow reads settings from `automation/settings.json`; no key is stored there.
+8. Open the Worker URL Cloudflare shows for `ai-signal`, then visit its `/admin/` path, sign in through Cloudflare Access, and verify the dashboard shows repository and recent Actions data. If API requests show an audience error, check that `ACCESS_AUD` matches the Access application audience.
 
-The Access policies are essential: the Worker also checks the Access identity and exact configured audience before handling any API request. The source URL validator accepts public HTTPS feeds only, checks redirect targets, and limits the response size. Essential duplicate detection, source checks, and review rules cannot be disabled from AI Settings. Settings and the source registry are versioned in GitHub, so edits create auditable commits and can be reverted there.
+The Access policy protects the Worker dashboard and API. If the separate public Pages site includes `/admin/`, protect that Pages path with its own Access application too; the Worker-hosted dashboard is the private working copy. The source URL validator accepts public HTTPS feeds only, checks redirect targets, and limits the response size. Essential duplicate detection, source checks, and review rules cannot be disabled from AI Settings. Settings and the source registry are versioned in GitHub, so edits create auditable commits and can be reverted there.
 
 Cloudflare Access free-tier user limits, Workers request limits, Pages build limits, and GitHub Actions minutes depend on the current account plan. Check the account's Cloudflare and GitHub usage pages before increasing automation frequency; the two-hour schedule uses 12 workflow runs daily. No SQL database is used.

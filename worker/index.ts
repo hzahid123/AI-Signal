@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { ARTICLE_CATEGORIES, ArticleFrontmatterSchema } from '../src/lib/article-schema.ts';
 import { freshnessLabel } from '../src/lib/article-rules.ts';
 import { AutomationSettingsSchema, DEFAULT_AUTOMATION_SETTINGS } from '../automation/settings.ts';
+// @ts-ignore Generated immediately before Wrangler bundles the Worker.
+import { ADMIN_HTML } from './admin-page.ts';
 
 interface Env {
   ACCESS_AUD: string;
@@ -37,7 +39,7 @@ const defaultSettings: Settings = DEFAULT_AUTOMATION_SETTINGS;
 const headersFor = (request: Request, env: Env): Headers => {
   const headers = new Headers({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer' });
   const origin = request.headers.get('origin');
-  if (origin === env.SITE_ORIGIN) {
+  if (origin === env.SITE_ORIGIN || origin === new URL(request.url).origin) {
     headers.set('access-control-allow-origin', origin);
     headers.set('access-control-allow-credentials', 'true');
     headers.set('vary', 'Origin');
@@ -405,14 +407,19 @@ export default {
   async fetch(request: Request, env: Env, ctx: AccessContext): Promise<Response> {
     const origin = request.headers.get('origin');
     if (request.method === 'OPTIONS') {
-      if (origin !== env.SITE_ORIGIN) return new Response(null, { status: 403 });
+      if (origin !== env.SITE_ORIGIN && origin !== new URL(request.url).origin) return new Response(null, { status: 403 });
       const headers = headersFor(request, env);
       headers.set('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
       headers.set('access-control-allow-headers', 'content-type');
       headers.set('access-control-max-age', '600');
       return new Response(null, { status: 204, headers });
     }
-    if (origin && origin !== env.SITE_ORIGIN) return json(request, env, { error: 'Request origin is not allowed.' }, 403);
+    if (origin && origin !== env.SITE_ORIGIN && origin !== new URL(request.url).origin) return json(request, env, { error: 'Request origin is not allowed.' }, 403);
+    const pathname = new URL(request.url).pathname;
+    if (request.method === 'GET' && (pathname === '/' || pathname === '/admin' || pathname === '/admin/')) {
+      return new Response(ADMIN_HTML, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', 'x-frame-options': 'DENY' } });
+    }
+    if (!pathname.startsWith('/admin-api/')) return new Response('Not found', { status: 404, headers: { 'cache-control': 'no-store' } });
     if (!env.ACCESS_AUD || !env.ADMIN_EMAIL || !env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY || !env.DEFAULT_BRANCH || !env.SITE_ORIGIN) {
       return json(request, env, { error: 'Admin API is not configured yet.' }, 503);
     }

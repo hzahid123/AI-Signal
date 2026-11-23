@@ -76,6 +76,7 @@ async function githubRequest(path: string, env: Env, init: RequestInit = {}): Pr
       headers: {
         accept: 'application/vnd.github+json',
         authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        'user-agent': 'AI-Pulse-Admin/1.0 (+https://github.com/hzahid123/AI-Signal)',
         'x-github-api-version': '2022-11-28',
         ...(init.body ? { 'content-type': 'application/json' } : {}),
         ...init.headers,

@@ -93,22 +93,29 @@ async function githubRequest(path: string, env: Env, init: RequestInit = {}): Pr
 async function githubFailure(response: Response, path: string, env: Env, method = 'GET'): Promise<Error> {
   const endpoint = `/repos/${safeRepository(env)}/${path}`;
   let detail = '';
+  let responseText = '';
   try {
-    const body = await response.json() as { message?: unknown };
+    responseText = (await response.text()).trim().slice(0, 500);
+    const body = JSON.parse(responseText) as { message?: unknown };
     if (typeof body.message === 'string') detail = `: ${body.message}`;
+    else if (responseText) detail = `: ${responseText}`;
   } catch {
-    // GitHub may return an empty or non-JSON error response.
+    if (responseText) detail = `: ${responseText}`;
   }
   const acceptedPermissions = response.headers.get('x-accepted-github-permissions');
   const sso = response.headers.get('x-github-sso');
   const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
   const rateLimitReset = response.headers.get('x-ratelimit-reset');
+  const rateLimitResource = response.headers.get('x-ratelimit-resource');
+  const requestId = response.headers.get('x-github-request-id');
   const resetTimestamp = rateLimitReset ? Number(rateLimitReset) : NaN;
   const resetAt = Number.isFinite(resetTimestamp) ? new Date(resetTimestamp * 1000).toISOString() : '';
   const diagnostics = [
     acceptedPermissions ? `GitHub requires permissions: ${acceptedPermissions}` : '',
     sso ? `GitHub SSO status: ${sso}` : '',
-    rateLimitRemaining === '0' ? `GitHub API rate limit is exhausted${resetAt ? `; reset at ${resetAt}` : ''}` : '',
+    rateLimitRemaining === '0' ? `GitHub API rate limit is exhausted${rateLimitResource ? ` (${rateLimitResource})` : ''}${resetAt ? `; reset at ${resetAt}` : ''}` : '',
+    requestId ? `GitHub request ID: ${requestId}` : '',
+    !detail && !acceptedPermissions && !sso && rateLimitRemaining !== '0' ? 'GitHub returned no error details or permission hints' : '',
   ].filter(Boolean);
   const diagnosticText = diagnostics.length ? ` (${diagnostics.join('; ')})` : '';
   return new Error(`GitHub ${method} ${endpoint} returned HTTP ${response.status}${detail}${diagnosticText}`);

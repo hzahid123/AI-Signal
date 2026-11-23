@@ -70,32 +70,51 @@ function encodedRepoPath(path: string): string {
 
 async function githubRequest(path: string, env: Env, init: RequestInit = {}): Promise<Response> {
   const repository = safeRepository(env);
-  const response = await fetch(`https://api.github.com/repos/${repository}/${path}`, {
-    ...init,
-    headers: {
-      accept: 'application/vnd.github+json',
-      authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      'x-github-api-version': '2022-11-28',
-      ...(init.body ? { 'content-type': 'application/json' } : {}),
-      ...init.headers,
-    },
-    signal: AbortSignal.timeout(15_000),
-  });
-  return response;
+  try {
+    return await fetch(`https://api.github.com/repos/${repository}/${path}`, {
+      ...init,
+      headers: {
+        accept: 'application/vnd.github+json',
+        authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        'x-github-api-version': '2022-11-28',
+        ...(init.body ? { 'content-type': 'application/json' } : {}),
+        ...init.headers,
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    const method = (init.method ?? 'GET').toUpperCase();
+    const endpoint = `/repos/${repository}/${path}`;
+    const reason = error instanceof Error ? error.message : 'network request failed';
+    throw new Error(`GitHub ${method} ${endpoint} could not be reached: ${reason}`);
+  }
+}
+
+async function githubFailure(response: Response, path: string, env: Env, method = 'GET'): Promise<Error> {
+  const endpoint = `/repos/${safeRepository(env)}/${path}`;
+  let detail = '';
+  try {
+    const body = await response.json() as { message?: unknown };
+    if (typeof body.message === 'string') detail = `: ${body.message}`;
+  } catch {
+    // GitHub may return an empty or non-JSON error response.
+  }
+  return new Error(`GitHub ${method} ${endpoint} returned HTTP ${response.status}${detail}`);
 }
 
 async function githubJson<T>(path: string, env: Env, init: RequestInit = {}): Promise<T> {
   const response = await githubRequest(path, env, init);
-  if (!response.ok) throw new Error(`GitHub returned HTTP ${response.status} for an admin operation`);
+  if (!response.ok) throw await githubFailure(response, path, env, (init.method ?? 'GET').toUpperCase());
   if (response.status === 204) return undefined as T;
   return await response.json() as T;
 }
 
 async function readGitFile(filePath: string, env: Env, branch = env.DEFAULT_BRANCH): Promise<GitFile | null> {
   const query = new URLSearchParams({ ref: branch });
-  const response = await githubRequest(`contents/${encodedRepoPath(filePath)}?${query}`, env);
+  const path = `contents/${encodedRepoPath(filePath)}?${query}`;
+  const response = await githubRequest(path, env);
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`GitHub could not read ${filePath} (HTTP ${response.status})`);
+  if (!response.ok) throw await githubFailure(response, path, env);
   const result = await response.json() as { content?: string; encoding?: string; sha?: string };
   if (!result.content || result.encoding !== 'base64' || !result.sha) throw new Error(`GitHub returned an unreadable file for ${filePath}`);
   const binary = atob(result.content.replace(/\s/g, ''));
@@ -116,7 +135,7 @@ async function writeGitFile(filePath: string, content: string, message: string, 
     method: 'PUT',
     body: JSON.stringify({ message, content: toBase64(content), branch: env.DEFAULT_BRANCH, ...(existing ? { sha: existing.sha } : {}) }),
   });
-  if (!result.ok) throw new Error(`GitHub could not save ${filePath} (HTTP ${result.status}); reload and retry if the file changed`);
+  if (!result.ok) throw await githubFailure(result, `contents/${encodedRepoPath(filePath)}`, env, 'PUT');
 }
 
 async function deleteGitFile(filePath: string, message: string, env: Env): Promise<void> {
@@ -125,7 +144,7 @@ async function deleteGitFile(filePath: string, message: string, env: Env): Promi
   const response = await githubRequest(`contents/${encodedRepoPath(filePath)}`, env, {
     method: 'DELETE', body: JSON.stringify({ message, sha: existing.sha, branch: env.DEFAULT_BRANCH }),
   });
-  if (!response.ok) throw new Error(`GitHub could not delete that file (HTTP ${response.status})`);
+  if (!response.ok) throw await githubFailure(response, `contents/${encodedRepoPath(filePath)}`, env, 'DELETE');
 }
 
 function parseArticle(fileName: string, raw: string): Article {
@@ -379,8 +398,9 @@ async function handleApi(request: Request, env: Env, identity: AccessIdentity): 
     const payload = await readBody(request);
     if (payload.confirm !== true) return json(request, env, { error: 'Confirm before starting automation.' }, 400);
     const body = { ref: env.DEFAULT_BRANCH };
-    const response = await githubRequest('actions/workflows/news-pipeline.yml/dispatches', env, { method: 'POST', body: JSON.stringify(body) });
-    if (response.status !== 204) throw new Error(`GitHub could not start the workflow (HTTP ${response.status})`);
+    const path = 'actions/workflows/news-pipeline.yml/dispatches';
+    const response = await githubRequest(path, env, { method: 'POST', body: JSON.stringify(body) });
+    if (response.status !== 204) throw await githubFailure(response, path, env, 'POST');
     return json(request, env, { message: 'Automation started. This page will update as the run progresses.' }, 202);
   }
   if (pathname === '/admin/logs' && request.method === 'GET') {

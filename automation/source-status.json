@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-22T23:35:28.304Z",
+  "generatedAt": "2026-11-23T07:30:15.808Z",
   "summary": {
     "feedsChecked": 5,
-    "storiesDiscovered": 4,
-    "candidatesDeferred": 3,
+    "storiesDiscovered": 302,
+    "candidatesDeferred": 19,
     "candidateProcessingErrors": 1,
     "duplicatesRejected": 0,
     "articlesGenerated": 0,
@@ -12,10 +12,10 @@
     "articlesPublished": 0,
     "heldForReview": 0,
     "errors": [
-      "Research failed for “Perplexity and Intelligence”: Gemini quota exhausted: {\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \",\"code\":\"too_many_requests\"}}"
+      "Research failed for “Adding One More Agent: How AI Team Size and Formation Shape Productivity and Diversity in Human-AI Brainstorming Teams”: Gemini quota exhausted: {\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \",\"code\":\"too_many_requests\"}}"
     ],
-    "startedAt": "2026-11-22T23:35:28.304Z",
-    "completedAt": "2026-11-22T23:35:28.975Z",
+    "startedAt": "2026-11-23T07:30:15.808Z",
+    "completedAt": "2026-11-23T07:30:16.952Z",
     "status": "completed_with_errors"
   },
   "sources": [
@@ -23,7 +23,7 @@
       "name": "OpenAI News",
       "feedUrl": "https://openai.com/news/rss.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T23:35:28.691Z",
+      "lastSuccessfulFetch": "2026-11-23T07:30:16.588Z",
       "errorInformation": null,
       "storiesFound": 1422
     },
@@ -31,7 +31,7 @@
       "name": "Google DeepMind Blog",
       "feedUrl": "https://deepmind.google/blog/rss.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T23:35:28.804Z",
+      "lastSuccessfulFetch": "2026-11-23T07:30:16.690Z",
       "errorInformation": null,
       "storiesFound": 100
     },
@@ -39,7 +39,7 @@
       "name": "Hugging Face Blog",
       "feedUrl": "https://huggingface.co/blog/feed.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T23:35:28.738Z",
+      "lastSuccessfulFetch": "2026-11-23T07:30:16.729Z",
       "errorInformation": null,
       "storiesFound": 915
     },
@@ -47,17 +47,17 @@
       "name": "arXiv cs.AI",
       "feedUrl": "https://rss.arxiv.org/rss/cs.AI",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T23:35:28.756Z",
+      "lastSuccessfulFetch": "2026-11-23T07:30:16.678Z",
       "errorInformation": null,
-      "storiesFound": 0
+      "storiesFound": 351
     },
     {
       "name": "arXiv cs.LG",
       "feedUrl": "https://rss.arxiv.org/rss/cs.LG",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-22T23:35:28.760Z",
+      "lastSuccessfulFetch": "2026-11-23T07:30:16.779Z",
       "errorInformation": null,
-      "storiesFound": 0
+      "storiesFound": 304
     }
   ]
 }

@@ -99,7 +99,19 @@ async function githubFailure(response: Response, path: string, env: Env, method 
   } catch {
     // GitHub may return an empty or non-JSON error response.
   }
-  return new Error(`GitHub ${method} ${endpoint} returned HTTP ${response.status}${detail}`);
+  const acceptedPermissions = response.headers.get('x-accepted-github-permissions');
+  const sso = response.headers.get('x-github-sso');
+  const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
+  const rateLimitReset = response.headers.get('x-ratelimit-reset');
+  const resetTimestamp = rateLimitReset ? Number(rateLimitReset) : NaN;
+  const resetAt = Number.isFinite(resetTimestamp) ? new Date(resetTimestamp * 1000).toISOString() : '';
+  const diagnostics = [
+    acceptedPermissions ? `GitHub requires permissions: ${acceptedPermissions}` : '',
+    sso ? `GitHub SSO status: ${sso}` : '',
+    rateLimitRemaining === '0' ? `GitHub API rate limit is exhausted${resetAt ? `; reset at ${resetAt}` : ''}` : '',
+  ].filter(Boolean);
+  const diagnosticText = diagnostics.length ? ` (${diagnostics.join('; ')})` : '';
+  return new Error(`GitHub ${method} ${endpoint} returned HTTP ${response.status}${detail}${diagnosticText}`);
 }
 
 async function githubJson<T>(path: string, env: Env, init: RequestInit = {}): Promise<T> {

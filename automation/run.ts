@@ -474,7 +474,10 @@ async function main(): Promise<void> {
   const existing = await readExistingArticles();
   for (let index = 0; index < candidates.length; index += 1) {
     const candidate = candidates[index]!;
-    try { await processCandidate(candidate, existing, apiKey, model, settings); }
+    try {
+      const result = await processCandidate(candidate, existing, apiKey, model, settings);
+      if (result === 'published') break;
+    }
     catch (error) {
       counters.candidateProcessingErrors += 1;
       errors.push(error instanceof Error ? error.message : String(error));

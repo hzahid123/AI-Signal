@@ -17,7 +17,7 @@ export const AutomationSettingsSchema = z.object({
 
 export type AutomationSettings = z.infer<typeof AutomationSettingsSchema>;
 export const DEFAULT_AUTOMATION_SETTINGS: AutomationSettings = {
-  model: 'gemini-3.8-flash', maximumCandidatesPerRun: 20, minimumImportanceScore: 3,
+  model: 'gemini-3.8-flash', maximumCandidatesPerRun: 3, minimumImportanceScore: 3,
   enabledCategories: [...ARTICLE_CATEGORIES],
   researchRequirements: { minimumSources: 2, requirePrimarySource: true },
   qualityThresholds: { minimumWords: 250, maximumWords: 1500 }, automaticPublishingEnabled: true,

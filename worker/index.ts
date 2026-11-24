@@ -214,11 +214,8 @@ function mondayUtc(date: Date): Date {
 }
 
 function nextScheduledRun(now: Date): string {
-  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), 17));
-  if (next <= now || next.getUTCHours() % 2 !== 0) {
-    next.setUTCHours(next.getUTCHours() + (next.getUTCHours() % 2 === 0 ? 2 : 1));
-    if (next.getUTCHours() >= 24) next.setUTCDate(next.getUTCDate() + 1);
-  }
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 10, 17));
+  if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
   return next.toISOString();
 }
 

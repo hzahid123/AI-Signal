@@ -87,7 +87,7 @@ npm run build
 
 ## Automated news pipeline
 
-The scheduled pipeline lives in `.github/workflows/news-pipeline.yml` and runs every two hours at minute 17 UTC, with a manual **Run workflow** option. GitHub scheduled runs use the latest commit on the repository's default branch and can be delayed during busy periods, so the interval is a target rather than a precise clock. The workflow is inactive until this file is pushed to the default branch and Actions is enabled.
+The scheduled pipeline lives in `.github/workflows/news-pipeline.yml` and runs daily at 10:17 UTC, with a manual **Run workflow** option. Each run evaluates up to three candidates and stops after one article passes automatic publication checks. This reduces Gemini usage; it does not guarantee an article if quota is unavailable or no story passes validation. GitHub scheduled runs use the latest commit on the repository's default branch and can be delayed during busy periods, so the time is a target rather than a guarantee. The workflow is inactive until this file is pushed to the default branch and Actions is enabled.
 
 Before enabling it, add `GEMINI_API_KEY` under **Repository Settings → Secrets and variables → Actions → New repository secret**. The workflow supplies GitHub's repository-scoped token for article commits and feed-status persistence. It requests `contents: write`; repository or organization policy must allow that permission. Optionally set the Actions variable `GEMINI_MODEL` to choose a model. The default is `gemini-3.8-flash` and can be changed without editing the workflow.
 
@@ -148,4 +148,4 @@ The owner dashboard can be served privately from the Worker at its `workers.dev`
 
 The Access policy protects the Worker dashboard and API. If the separate public Pages site includes `/admin/`, protect that Pages path with its own Access application too; the Worker-hosted dashboard is the private working copy. The source URL validator accepts public HTTPS feeds only, checks redirect targets, and limits the response size. Essential duplicate detection, source checks, and review rules cannot be disabled from AI Settings. Settings and the source registry are versioned in GitHub, so edits create auditable commits and can be reverted there.
 
-Cloudflare Access free-tier user limits, Workers request limits, Pages build limits, and GitHub Actions minutes depend on the current account plan. Check the account's Cloudflare and GitHub usage pages before increasing automation frequency; the two-hour schedule uses 12 workflow runs daily. No SQL database is used.
+Cloudflare Access free-tier user limits, Workers request limits, Pages build limits, and GitHub Actions minutes depend on the current account plan. Check the account's Cloudflare and GitHub usage pages before increasing automation frequency. The daily schedule uses one workflow run per day by default. No SQL database is used.

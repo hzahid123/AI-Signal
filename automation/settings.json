@@ -1,6 +1,6 @@
 {
   "model": "gemini-3.8-flash",
-  "maximumCandidatesPerRun": 20,
+  "maximumCandidatesPerRun": 3,
   "minimumImportanceScore": 3,
   "enabledCategories": [
     "AI Companies",

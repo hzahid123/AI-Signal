@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-11-26T19:36:38.300Z",
+  "generatedAt": "2026-11-27T19:27:47.821Z",
   "summary": {
     "feedsChecked": 5,
-    "storiesDiscovered": 364,
+    "storiesDiscovered": 237,
     "candidatesDeferred": 2,
     "candidateProcessingErrors": 1,
     "duplicatesRejected": 0,
@@ -12,10 +12,10 @@
     "articlesPublished": 0,
     "heldForReview": 0,
     "errors": [
-      "Research failed for “Building on Nemotron 3.5 Parse: Open Data, Fine-Tuning, and Faster Inference”: Gemini quota exhausted: {\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \",\"code\":\"too_many_requests\"}}"
+      "Research failed for “Context Scaling: A New Frontier of AI Scaling”: Gemini quota exhausted: {\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \",\"code\":\"too_many_requests\"}}"
     ],
-    "startedAt": "2026-11-26T19:36:38.300Z",
-    "completedAt": "2026-11-26T19:36:39.424Z",
+    "startedAt": "2026-11-27T19:27:47.821Z",
+    "completedAt": "2026-11-27T19:27:48.701Z",
     "status": "completed_with_errors"
   },
   "sources": [
@@ -23,7 +23,7 @@
       "name": "OpenAI News",
       "feedUrl": "https://openai.com/news/rss.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-26T19:36:38.901Z",
+      "lastSuccessfulFetch": "2026-11-27T19:27:48.348Z",
       "errorInformation": null,
       "storiesFound": 1430
     },
@@ -31,7 +31,7 @@
       "name": "Google DeepMind Blog",
       "feedUrl": "https://deepmind.google/blog/rss.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-26T19:36:39.036Z",
+      "lastSuccessfulFetch": "2026-11-27T19:27:48.390Z",
       "errorInformation": null,
       "storiesFound": 100
     },
@@ -39,15 +39,15 @@
       "name": "Hugging Face Blog",
       "feedUrl": "https://huggingface.co/blog/feed.xml",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-26T19:36:38.964Z",
+      "lastSuccessfulFetch": "2026-11-27T19:27:48.383Z",
       "errorInformation": null,
-      "storiesFound": 918
+      "storiesFound": 919
     },
     {
       "name": "arXiv cs.AI",
       "feedUrl": "https://rss.arxiv.org/rss/cs.AI",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-26T19:36:39.162Z",
+      "lastSuccessfulFetch": "2026-11-27T19:27:48.525Z",
       "errorInformation": null,
       "storiesFound": 398
     },
@@ -55,9 +55,9 @@
       "name": "arXiv cs.LG",
       "feedUrl": "https://rss.arxiv.org/rss/cs.LG",
       "enabled": true,
-      "lastSuccessfulFetch": "2026-11-26T19:36:39.241Z",
+      "lastSuccessfulFetch": "2026-11-27T19:27:48.426Z",
       "errorInformation": null,
-      "storiesFound": 419
+      "storiesFound": 0
     }
   ]
 }
